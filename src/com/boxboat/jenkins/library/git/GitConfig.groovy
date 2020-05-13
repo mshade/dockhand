@@ -1,6 +1,8 @@
 package com.boxboat.jenkins.library.git
 
 import com.boxboat.jenkins.library.config.BaseConfig
+import com.boxboat.jenkins.library.config.Config
+import com.boxboat.jenkins.library.credentials.vault.VaultFileCredential
 
 class GitConfig extends BaseConfig<GitConfig> implements Serializable {
 
@@ -10,7 +12,7 @@ class GitConfig extends BaseConfig<GitConfig> implements Serializable {
 
     String email
 
-    String credential
+    Object credential
 
     String remotePathRegex
 
@@ -49,5 +51,24 @@ class GitConfig extends BaseConfig<GitConfig> implements Serializable {
 
     static String replacePath(String base, String path) {
         return base.replaceFirst(/(?i)\{\{\s+path\s+\}\}/, path)
+    }
+
+    def withCredentials(Map configMap = [:], Closure closure) {
+        def keyFileVariable = configMap.get('keyFileVariable', 'SSH_KEY')
+        def usernameVariable = configMap.get('usernameVariable', 'USERNAME')
+
+        if (credential instanceof VaultFileCredential) {
+            credential.withCredentials(['variable': keyFileVariable]){
+                closure()
+            }
+        }else{
+            Config.pipeline.withCredentials([Config.pipeline.sshUserPrivateKey(
+                credentialsId: credential,
+                keyFileVariable: keyFileVariable,
+                usernameVariable: usernameVariable
+            )]) {
+                closure()
+            }
+        }
     }
 }

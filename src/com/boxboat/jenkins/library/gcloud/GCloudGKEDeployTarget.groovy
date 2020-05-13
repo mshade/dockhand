@@ -17,7 +17,7 @@ class GCloudGKEDeployTarget extends BaseConfig<GCloudGKEDeployTarget> implements
     String zone
 
     @Override
-    void withCredentials(closure) {
+    void withCredentials(Map configMap = [:], Closure closure) {
         Config.global.getGCloudAccount(gCloudAccountKey).withCredentials {
             def tempDir = Config.pipeline.sh(returnStdout: true, script: """
                 mktemp -d

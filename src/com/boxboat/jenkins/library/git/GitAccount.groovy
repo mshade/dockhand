@@ -11,6 +11,11 @@ class GitAccount implements Serializable {
         if (_initialized) {
             return true
         }
+        Config.global.git.withCredentials([
+                'keyFileVariable': 'sshKey',
+                'usernameVariable': 'username']){
+
+        }
         Config.pipeline.withCredentials([Config.pipeline.sshUserPrivateKey(
                 credentialsId: Config.global.git.credential,
                 keyFileVariable: 'sshKey',

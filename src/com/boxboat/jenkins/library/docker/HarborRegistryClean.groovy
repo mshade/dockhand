@@ -65,12 +65,17 @@ class HarborRegistryClean implements Serializable {
 
     List<Map<String, Object>> readRepositoryTags(Registry registry, String name) {
         def requestURI = registry.getRegistryUrl() + registryAPIBase + "/repositories/${name}/tags"
-        def result = Config.pipeline.httpRequest(
-                url: requestURI,
-                authentication: registry.credential,
-                httpMode: 'GET',
-                contentType: "APPLICATION_JSON"
-        )?.getContent()
+        def result
+        registry.withCredentials{
+                def auth = Config.pipeline.env["REGISTRY_USERNAME"] + ":" + Config.pipeline.env["REGISTRY_PASSWORD"]
+                def encoded = auth.bytes.encodeBase64().toString()
+                result = Config.pipeline.httpRequest(
+                        url: requestURI,
+                        httpMode: 'GET',
+                        contentType: "APPLICATION_JSON",
+                        customHeaders:[[name:'Authorization', value:"Basic ${encoded}"]]
+                )?.getContent()
+        }
         def tags = []
         if (result && result != "null") {
             tags = Config.pipeline.readJSON(text: result.toString())

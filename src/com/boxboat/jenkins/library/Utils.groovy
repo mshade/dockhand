@@ -65,6 +65,76 @@ class Utils implements Serializable {
         return format
     }
 
+    static def generateUUID(){
+        return UUID.randomUUID().toString()
+    }
+
+    static def makeTmpFile(){
+        def tmpFile = "./tmp-${generateUUID()}"
+        Config.pipeline.sh """
+            set +x
+            touch ${tmpFile}
+        """
+        return tmpFile
+    }
+
+    static void withTmpFile(Map configMap=[:], Closure closure){
+        def fileVariable = configMap.get('variable', 'TARGET_FILE')
+        def file = makeTmpFile()
+        try {
+            Config.pipeline.withEnv(["${fileVariable}=${file}"]){
+                closure()
+            }
+        }finally{
+            Config.pipeline.sh """
+                set +x
+                rm -f ${file}
+            """
+        }
+    }
+
+    /**
+     *  Make a temp dir in the workspace
+     *    mktemp -d may not work with pipeline steps like write() or writeJSON()
+     *    because it is outside Jenkin's current working directory
+    **/
+    static def makeTmpDir(){
+        def tmpDir = "./tmp-${generateUUID()}"
+        Config.pipeline.sh """
+            set +x
+            mkdir -p "${tmpDir}"
+        """.trim()
+        return tmpDir
+    }
+
+    static void withTmpDir(Map configMap=[:], Closure closure){
+        def dirVariable = configMap.get('variable', 'TARGET_DIR')
+        def dir = makeTmpDir()
+        try {
+            Config.pipeline.withEnv(["${dirVariable}=${dir}"]){
+                closure()
+            }
+        }finally{
+            Config.pipeline.sh """
+                set +x
+                rm -rf ${dir}
+            """
+        }
+    }
+
+    static boolean hasCmd(String cmd){
+        def exists = true
+        try{
+            Config.pipeline.sh """
+                set +x
+                which ${cmd}
+            """
+        }catch(Exception ex){
+            exists = false
+        }
+        return exists
+    }
+
     static String buildTagCommit(String tag) {
         if (tag.startsWith("build-")) {
             return tag.substring("build-".length())

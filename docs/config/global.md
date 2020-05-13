@@ -2,6 +2,8 @@
 
 All keys from the [Common Config](common.md) are valid in addition to the keys documented here.
 
+Note that to make use of the Vault credentials (ie `credential: !!com.boxboat.jenkins.library.credentials.vault.*`), [dockcmd](https://github.com/boxboat/dockcmd) must be installed on the jenkins agents. This functionality also requires the mask-passwords plugin for Jenkins to be installed.
+
 ## deployTargetMap
 
 Map of deployment targets.  Supported deployment target types are:
@@ -16,6 +18,17 @@ deployTargetMap:
     contextName: boxboat
     # credential ID with kube config
     credential: kubeconfig-dev
+  dev02: !!com.boxboat.jenkins.library.deployTarget.KubernetesDeployTarget
+    # kubernetes context to use
+    contextName: boxboat
+    # Vault credential info (expects a kubeconfig file at the location specified)
+    credential: !!com.boxboat.jenkins.library.credentials.vault.VaultFileCredential
+      # The vault in the vaultMap to read this credential from
+      vault: default
+      # The path in vault where this credential is stored
+      path: kv/kubeconfig
+      # The key at the path that contains the kubernetes config contents
+      fileKey: prod03
   gke: !!com.boxboat.jenkins.library.gcloud.GCloudGKEDeployTarget
     # gCloudAccountMap key to reference
     gCloudAccountKey: default
@@ -104,6 +117,15 @@ Map of notification targets.  Supported notification target types are:
 notifyTargetMap:
   default: !!com.boxboat.jenkins.library.notify.SlackWebHookNotifyTarget
     credential: slack-webhook-url
+  prod: !!com.boxboat.jenkins.library.notify.SlackWebHookNotifyTarget
+     # Vault credential info (expects a slack webhook url at the location specified)
+    credential: !!com.boxboat.jenkins.library.credentials.vault.VaultStringCredential
+      # The vault in the vaultMap to read this credential from
+      vault: default
+      # The path in vault where this credential is stored
+      kv/slack-prod-credentials
+      # The key at the path that contains the slack webhook url
+      stringKey: webhook-url
   jenkins-success: !!com.boxboat.jenkins.library.notify.SlackJenkinsAppNotifyTarget
     channel: "#jenkins-success"
   jenkins-failure: !!com.boxboat.jenkins.library.notify.SlackJenkinsAppNotifyTarget
@@ -129,6 +151,20 @@ registryMap:
     # {{ path }} is replaced with the image path
     # {{ tag }} is replaced with the image tag
     imageUrlReplace: https://dtr.boxboat.com/repositories/{{ path }}/{{ tag }}/linux/amd64/layers
+  dev:
+    scheme: https
+    host: harbor.boxboat.com
+    # Vault credential info (expects username and password keys at the location specified)
+    credential: !!com.boxboat.jenkins.library.credentials.vault.VaultUsernamePasswordCredential
+      # The vault in the vaultMap to read this credential from
+      vault: default
+      # The path in vault where this credential is stored
+      path: kv/harbor-dev-credentials
+      # The key at the path in vault that stores the username for this registry
+      usernameKey: username
+      # The key at the path in vault that stores the password for this registry
+      passwordKey: password
+    imageUrlReplace: https://harbor.boxboat.com/harbor/projects/1/repositories/{{ path }}/tags/{{ tag }}
   gcr: !!com.boxboat.jenkins.library.gcloud.GCloudRegistry
     scheme: https
     host: gcr.io
@@ -151,7 +187,7 @@ vaultMap:
     roleIdCredential: vault-role-id
     # secret text credential ID with secretId
     secretIdCredential: vault-secret-id
-    # secret text credential ID 
+    # secret text credential ID
     tokenCredential: vault-token
     # full URL to vault
     url: http://localhost:8200

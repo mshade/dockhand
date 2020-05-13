@@ -8,7 +8,7 @@ class GCloudRegistry extends Registry implements Serializable {
     String gCloudAccountKey
 
     @Override
-    def withCredentials(closure) {
+    def withCredentials(Map configMap = [:], Closure closure) {
         Config.global.getGCloudAccount(gCloudAccountKey).withCredentials {
             def tempDir = Config.pipeline.sh(returnStdout: true, script: """
                 mktemp -d
